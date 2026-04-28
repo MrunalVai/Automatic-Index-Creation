@@ -13,9 +13,9 @@ Config *config_default(const char *conninfo) {
     c->min_benefit_ratio    = 1.5;   /* benefit must beat overhead by 50%   */
     c->drop_safety_ratio    = 0.5;   /* existing index dropped if benefit <
                                         half the overhead                   */
-    c->base_index_write_cost = 10.0; /* tuned per environment               */
-    c->analysis_interval_s  = 3600;
-    c->monitor_interval_s   = 21600; /* 6h                                   */
+    c->base_index_write_cost = 0.01; /* tuned per environment               */
+    c->analysis_interval_s  = 100;
+    c->monitor_interval_s   = 400;                          
     c->dry_run              = 1;     /* safe default                        */
     c->use_pg_qualstats     = 1;
     return c;

@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ------------------------------------------------------------------ */
-/* CREATE-side evaluation                                              */
-/* ------------------------------------------------------------------ */
 
 void create_proposals_free(CreateProposalList *list) {
     if (!list) return;
@@ -16,8 +13,7 @@ void create_proposals_free(CreateProposalList *list) {
     free(list);
 }
 
-/* Try to read schema+relation out of a CREATE INDEX string of the form
-   CREATE INDEX ON "schema"."rel" (...)                                  */
+
 static int parse_target(const char *create_sql,
                         char *schema, size_t slen,
                         char *rel,    size_t rlen) {
@@ -122,8 +118,7 @@ CreateProposalList *decision_evaluate_creates(
 
         /* Step 3: overhead */
         char schema[128], rel[128];
-        if (parse_target(c->create_sql, schema, sizeof(schema),
-                                         rel,    sizeof(rel))    == 0) {
+        if (parse_target(c->create_sql, schema, sizeof(schema),rel, sizeof(rel))    == 0) {
             TableStat *t = table_stats_find(tables, schema, rel);
             p->overhead = estimate_total_overhead(t,
                                                   est_size,
@@ -210,9 +205,6 @@ DropProposalList *decision_evaluate_drops(
 
         if (x->is_primary || x->is_unique) {
             p->recommend_drop = 0;
-            snprintf(p->reason, sizeof(p->reason),
-                     "index is %s; not eligible to drop",
-                     x->is_primary ? "PRIMARY KEY" : "UNIQUE");
             out->n++;
             continue;
         }
@@ -223,18 +215,12 @@ DropProposalList *decision_evaluate_drops(
 
         if (p->idx_scan == 0 && p->index_writes > 0) {
             p->recommend_drop = 1;
-            snprintf(p->reason, sizeof(p->reason),
-                     "unused index (idx_scan=0) on a written table");
+           
         } else if (ratio <= cfg->drop_safety_ratio) {
             p->recommend_drop = 1;
-            snprintf(p->reason, sizeof(p->reason),
-                     "benefit/overhead = %.2f <= drop threshold %.2f",
-                     ratio, cfg->drop_safety_ratio);
+ \
         } else {
             p->recommend_drop = 0;
-            snprintf(p->reason, sizeof(p->reason),
-                     "benefit/overhead = %.2f > %.2f -- keep",
-                     ratio, cfg->drop_safety_ratio);
         }
         out->n++;
     }
