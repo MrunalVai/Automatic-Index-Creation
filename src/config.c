@@ -1,0 +1,28 @@
+#include "config.h"
+#include <stdlib.h>
+#include <string.h>
+
+Config *config_default(const char *conninfo) {
+    Config *c = calloc(1, sizeof(Config));
+    if (!c) return NULL;
+    c->conninfo             = strdup(conninfo ? conninfo : "");
+    c->top_n_queries        = 50;
+    c->min_query_calls      = 10;
+    c->max_creates_per_run  = 3;
+    c->max_drops_per_run    = 3;
+    c->min_benefit_ratio    = 1.5;   /* benefit must beat overhead by 50%   */
+    c->drop_safety_ratio    = 0.5;   /* existing index dropped if benefit <
+                                        half the overhead                   */
+    c->base_index_write_cost = 10.0; /* tuned per environment               */
+    c->analysis_interval_s  = 3600;
+    c->monitor_interval_s   = 21600; /* 6h                                   */
+    c->dry_run              = 1;     /* safe default                        */
+    c->use_pg_qualstats     = 1;
+    return c;
+}
+
+void config_free(Config *cfg) {
+    if (!cfg) return;
+    free(cfg->conninfo);
+    free(cfg);
+}
