@@ -146,7 +146,7 @@ DropProposalList *decision_evaluate_drops(
     DropProposalList *out = calloc(1, sizeof(*out));
     if (!indexes || indexes->n == 0) return out;
     out->items = calloc(indexes->n, sizeof(DropProposal));
-    const double per_scan_benefit_units = 100.0;
+    const double per_scan_benefit_units = 10000.0;
     for (int i = 0; i < indexes->n; i++) {
         IndexStat *x = &indexes->items[i];
         DropProposal *p = &out->items[out->n];
@@ -165,6 +165,9 @@ DropProposalList *decision_evaluate_drops(
             out->n++;
             continue;
         }
+        LOG_I("%s.%s scans=%ld writes=%ld benefit=%.1f overhead=%.1f",
+              p->relname, p->indexrelname, p->idx_scan, p->index_writes,
+              p->benefit, p->overhead);
         double ratio = (p->overhead > 0)
                        ? (p->benefit / p->overhead)
                        : (p->benefit > 0 ? 1e18 : 0);
@@ -172,9 +175,9 @@ DropProposalList *decision_evaluate_drops(
         if (p->idx_scan == 0 && p->index_writes > 0) {
             p->recommend_drop = 1;
            
-        } else if (ratio <= cfg->drop_safety_ratio) {
+        } else if (ratio <= cfg->drop_safety_ratio && p->idx_scan > 10) {
             p->recommend_drop = 1;
- \
+ 
         } else {
             p->recommend_drop = 0;
         }

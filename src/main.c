@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
             run_create_cycle(db, cfg);
             next_create = now + cfg->analysis_interval_s;
         }
+        sleep(cfg->monitor_interval_s / 2);
         if (now >= next_monitor) {
             run_drop_cycle(db, cfg);
             next_monitor = now + cfg->monitor_interval_s;
