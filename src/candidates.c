@@ -5,8 +5,8 @@
 #include <string.h>
 
 void candidates_free(IndexCandidateList *list) {
-    if (!list) return;
-    for (int i = 0; i < list->n; i++) {
+    if(!list) return;
+    for(int i=0; i<list->n; i++){
         free(list->items[i].schemaname);
         free(list->items[i].relname);
         free(list->items[i].create_sql);
@@ -15,9 +15,9 @@ void candidates_free(IndexCandidateList *list) {
     free(list);
 }
 
-IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
+IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences){
     IndexCandidateList *out = calloc(1, sizeof(*out));
-    if (!db_has_extension(db, "pg_qualstats")) {
+    if(!db_has_extension(db, "pg_qualstats")){
         LOG_W("pg_qualstats not installed; no candidates generated");
         return out;
     }
@@ -38,12 +38,11 @@ IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
     "ORDER BY occ DESC;";
     char param[32];
     snprintf(param, sizeof(param), "%ld", min_occurrences);
-    const char *params[1] = { param };
+    const char *params[1] = {param};
 
-    PGresult *res = PQexecParams(db->conn, sql, 1, NULL, params, NULL, NULL, 0);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        LOG_W("pg_qualstats query failed (likely older version): %s",
-              PQerrorMessage(db->conn));
+    PGresult *res=PQexecParams(db->conn, sql, 1, NULL, params, NULL, NULL, 0);
+    if(PQresultStatus(res) != PGRES_TUPLES_OK){
+        LOG_W("pg_qualstats query failed (likely older version): %s", PQerrorMessage(db->conn));
         PQclear(res);
         return out;
     }
@@ -52,14 +51,14 @@ IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
     LOG_I("pg_qualstats returned %d candidate indexes", n);
     out->items = calloc(n, sizeof(IndexCandidate));
 
-    for (int i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++){
         const char *schema  = PQgetvalue(res, i, 0);
-        const char *rel     = PQgetvalue(res, i, 1);
+        const char *rel = PQgetvalue(res, i, 1);
         const char *cols_pg = PQgetvalue(res, i, 2); 
-        long        occ     = atol(PQgetvalue(res, i, 3));
-
+        long occ = atol(PQgetvalue(res, i, 3));
         char cols[1024] = {0};
         int co = 0;
+        
         for (const char *p = cols_pg; *p && co < (int)sizeof(cols) - 2; p++) {
             if (*p=='{' || *p=='}' || *p=='"') continue;
             if (*p==',') {cols[co++]=','; cols[co++]=' ';continue;}

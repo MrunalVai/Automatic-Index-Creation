@@ -7,22 +7,22 @@
 #include <string.h>
 
 void create_proposals_free(CreateProposalList *list) {
-    if (!list) return;
+    if(!list)return;
     free(list->items);
     free(list);
 }
 
 static int parse_target(const char *create_sql,char *schema, size_t slen,char *rel,size_t rlen) {
     const char *on = strstr(create_sql, " ON ");
-    if (!on) return -1;
+    if(!on) return -1;
     on += 4;
     while (*on == ' ') on++;
     char tmp[512];
-    int  ti = 0;
-    int  in_quote = 0;
-    int  saw_dot  = 0;
+    int ti = 0;
+    int in_quote = 0;
+    int saw_dot  = 0;
     for (; *on && ti < (int)sizeof(tmp) - 1; on++) {
-        if (*on == '"') { in_quote = !in_quote; continue; }
+        if (*on == '"') {in_quote = !in_quote; continue;}
         if (!in_quote && (*on == ' ' || *on == '(')) break;
         tmp[ti++] = *on;
         if (*on == '.') saw_dot = 1;

@@ -16,8 +16,7 @@ int hypopg_create(DB *db, const char *create_index_sql,char *name_out, size_t na
 
     size_t buflen = strlen(escaped) + 64;
     char *sql = malloc(buflen);
-    snprintf(sql, buflen,
-             "SELECT indexname FROM hypopg_create_index(%s)", escaped);
+    snprintf(sql, buflen, "SELECT indexname FROM hypopg_create_index(%s)", escaped);
     PQfreemem(escaped);
 
     PGresult *res = db_exec(db, sql);
@@ -78,8 +77,7 @@ int explain_total_cost(DB *db, const char *query, double *out) {
         }
         char exec_sql[4096];
         if (max_param > 0)
-            snprintf(exec_sql, sizeof(exec_sql),
-                     "EXPLAIN EXECUTE pgai_q(%s)", nulls);
+            snprintf(exec_sql, sizeof(exec_sql), "EXPLAIN EXECUTE pgai_q(%s)", nulls);
         else
             snprintf(exec_sql, sizeof(exec_sql), "EXPLAIN EXECUTE pgai_q");
         res = db_exec(db, exec_sql);
