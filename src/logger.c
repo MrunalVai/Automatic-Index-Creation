@@ -19,13 +19,11 @@ static const char *level_str(LogLevel l) {
 
 void log_msg(LogLevel level, const char *fmt, ...) {
     if (level < g_min) return;
-
     char ts[32];
     time_t now = time(NULL);
     struct tm tm;
     localtime_r(&now, &tm);
     strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", &tm);
-
     fprintf(stderr, "%s [%s] ", ts, level_str(level));
     va_list ap;
     va_start(ap, fmt);

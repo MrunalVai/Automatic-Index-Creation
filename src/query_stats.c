@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ===== top queries ====================================================== */
-
 QueryStatList *query_stats_top(DB *db, int top_n, long min_calls) {
     char sql[2048];
     snprintf(sql, sizeof(sql),
@@ -51,8 +49,6 @@ void query_stats_free(QueryStatList *list) {
     free(list->items);
     free(list);
 }
-
-/* ===== table stats ====================================================== */
 
 TableStatList *table_stats_all(DB *db) {
     const char *sql =
@@ -112,16 +108,10 @@ double table_hot_ratio(const TableStat *t) {
 
 long table_index_writes(const TableStat *t) {
     if (!t) return 0;
-    /* HOT updates skip index maintenance for indexes whose columns weren't
-       changed. Without column-level info, treat HOT as "no index work" --
-       Postgres already proved it. Non-HOT updates and inserts/deletes touch
-       the indexes. */
     long non_hot_upd = t->n_tup_upd - t->n_tup_hot_upd;
     if (non_hot_upd < 0) non_hot_upd = 0;
     return t->n_tup_ins + non_hot_upd + t->n_tup_del;
 }
-
-/* ===== index stats ====================================================== */
 
 IndexStatList *index_stats_all(DB *db) {
     const char *sql =
@@ -135,7 +125,6 @@ IndexStatList *index_stats_all(DB *db) {
         "WHERE  s.schemaname NOT IN ('pg_catalog','information_schema')";
     PGresult *res = db_exec(db, sql);
     if (!res) return NULL;
-
     int n = PQntuples(res);
     IndexStatList *list = calloc(1, sizeof(*list));
     list->items = calloc(n, sizeof(IndexStat));

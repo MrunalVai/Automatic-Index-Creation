@@ -15,20 +15,12 @@ void candidates_free(IndexCandidateList *list) {
     free(list);
 }
 
-/*
- * pg_qualstats records each WHERE-clause predicate it observes. The view
- * pg_qualstats_indexes (provided by pg_qualstats >= 2) groups quals into
- * proposed btree indexes and is the canonical input to HypoPG-driven
- * advisors. We use a robust query that tolerates missing/older versions.
- */
 IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
     IndexCandidateList *out = calloc(1, sizeof(*out));
-
     if (!db_has_extension(db, "pg_qualstats")) {
         LOG_W("pg_qualstats not installed; no candidates generated");
         return out;
     }
-
     const char *sql =
     "WITH q AS ( "
     "SELECT "
@@ -44,7 +36,6 @@ IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
     "SELECT * "
     "FROM q "
     "ORDER BY occ DESC;";
-
     char param[32];
     snprintf(param, sizeof(param), "%ld", min_occurrences);
     const char *params[1] = { param };
@@ -85,7 +76,6 @@ IndexCandidateList *candidates_from_qualstats(DB *db, long min_occurrences) {
         c->qual_occurrences = occ;
     }
     PQclear(res);
-
     LOG_I("generated %d candidate indexes from pg_qualstats", out->n);
     return out;
 }

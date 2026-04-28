@@ -7,11 +7,9 @@
 int hypopg_available(DB *db) {
     return db_has_extension(db, "hypopg");
 }
-
 int hypopg_reset(DB *db) {
     return db_exec_cmd(db, "SELECT hypopg_reset()");
 }
-
 int hypopg_create(DB *db, const char *create_index_sql,char *name_out, size_t name_out_size) {
     char *escaped = PQescapeLiteral(db->conn, create_index_sql,strlen(create_index_sql));
     if (!escaped) return -1;
@@ -25,7 +23,6 @@ int hypopg_create(DB *db, const char *create_index_sql,char *name_out, size_t na
     PGresult *res = db_exec(db, sql);
     free(sql);
     if (!res) return -1;
-
     int rc = -1;
     if (PQntuples(res) > 0 && !PQgetisnull(res, 0, 0)) {
         snprintf(name_out, name_out_size, "%s", PQgetvalue(res, 0, 0));
@@ -35,15 +32,11 @@ int hypopg_create(DB *db, const char *create_index_sql,char *name_out, size_t na
     return rc;
 }
 
-/* Find "(cost=A..B rows=...)" in the first plan line; return B. */
 static int parse_total_cost(const char *plan_line, double *out) {
-    //print plan line
-    
     const char *p = strstr(plan_line, "cost=");
     if (!p) return -1;
     p += 5;
     LOG_I("plan line: %s", p);
-    /* skip start cost */
     while (*p && *(p+1) && (*p != '.' || *(p+1) != '.')) p++;
     if (*p != '.' || *(p+1) != '.') return -1;
     p += 2;
@@ -55,27 +48,20 @@ static int parse_total_cost(const char *plan_line, double *out) {
 }
 
 int explain_total_cost(DB *db, const char *query, double *out) {
-
     int has_params = strchr(query, '$') != NULL;
-
     PGresult *res = NULL;
     if (has_params) {
-      
         db_exec_cmd(db, "BEGIN");                                             
         if (db_exec_cmd(db, "SET LOCAL plan_cache_mode = force_generic_plan") != 0){
-           
             return -1;
         }
             
-        if (db_exec_cmd(db, "DEALLOCATE ALL") != 0) { /* tolerate failure */ }
-
+        if (db_exec_cmd(db, "DEALLOCATE ALL") != 0) { }
         size_t qlen = strlen(query);
         char *prep = malloc(qlen + 64);
         snprintf(prep, qlen + 64, "PREPARE pgai_q AS %s", query);
         if (db_exec_cmd(db, prep) != 0) { free(prep);db_exec_cmd(db, "ROLLBACK"); return -1; }
         free(prep);
-
-        /* Build EXECUTE pgai_q (NULL, NULL, ...). Count parameters first.  */
         int max_param = 0;
         for (const char *p = query; *p; p++) {
             if (*p == '$') {
@@ -88,8 +74,7 @@ int explain_total_cost(DB *db, const char *query, double *out) {
         char nulls[2048] = {0};
         int off = 0;
         for (int i = 0; i < max_param; i++) {
-            off += snprintf(nulls + off, sizeof(nulls) - off,
-                            "%sNULL", i ? "," : "");
+            off += snprintf(nulls + off, sizeof(nulls) - off,"%sNULL", i ? "," : "");
         }
         char exec_sql[4096];
         if (max_param > 0)
@@ -97,7 +82,6 @@ int explain_total_cost(DB *db, const char *query, double *out) {
                      "EXPLAIN EXECUTE pgai_q(%s)", nulls);
         else
             snprintf(exec_sql, sizeof(exec_sql), "EXPLAIN EXECUTE pgai_q");
-
         res = db_exec(db, exec_sql);
         db_exec_cmd(db, "DEALLOCATE pgai_q");
         db_exec_cmd(db, "COMMIT");
@@ -108,8 +92,6 @@ int explain_total_cost(DB *db, const char *query, double *out) {
         res = db_exec(db, sql);
         free(sql);
     }
-
-    
     if (!res){
          return -1;
     } 

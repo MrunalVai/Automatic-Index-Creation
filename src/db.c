@@ -11,7 +11,6 @@ DB *db_connect(const char *conninfo) {
         PQfinish(conn);
         return NULL;
     }
-    /* Make planner cost numbers stable across sessions. */
     PGresult *r = PQexec(conn, "SET application_name = 'pg_autoindex'");
     PQclear(r);
     DB *db = calloc(1, sizeof(DB));

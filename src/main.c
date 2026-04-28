@@ -33,7 +33,7 @@ static void run_create_cycle(DB *db, const Config *cfg) {
 
     IndexCandidateList *cands = NULL;
     if (cfg->use_pg_qualstats)
-        cands = candidates_from_qualstats(db, /*min_occurrences=*/cfg->min_query_calls);
+        cands = candidates_from_qualstats(db,cfg->min_query_calls);
     if (!cands || cands->n == 0) {
         LOG_W("no index candidates this cycle");
         if (cands) candidates_free(cands);
@@ -41,17 +41,13 @@ static void run_create_cycle(DB *db, const Config *cfg) {
         query_stats_free(queries);
         return;
     }
-
-    CreateProposalList *props =
-        decision_evaluate_creates(db, cfg, cands, queries, tables);
-
+    CreateProposalList *props=decision_evaluate_creates(db, cfg, cands, queries, tables);
     int created = 0;
     for (int i = 0; i < props->n; i++) {
         CreateProposal *p = &props->items[i];
         LOG_I("candidate: %s | benefit=%.1f overhead=%.1f size~%ld | %s",
               p->cand->create_sql, p->benefit, p->overhead,
               p->est_size_bytes,   p->reason);
-
         if (!p->accepted) continue;
         if (created >= cfg->max_creates_per_run) {
             LOG_I("reached max_creates_per_run=%d, deferring rest",
@@ -69,19 +65,14 @@ static void run_create_cycle(DB *db, const Config *cfg) {
             }
         }
     }
-
     create_proposals_free(props);
     candidates_free(cands);
     table_stats_free(tables);
     query_stats_free(queries);
     LOG_I("=== create-cycle end (created=%d) ===", created);
 }
-
-/* ---- one cycle: review existing indexes for drop ------------------------ */
-
 static void run_drop_cycle(DB *db, const Config *cfg) {
     LOG_I("=== drop-cycle start ===");
-
     IndexStatList *idxs   = index_stats_all(db);
     TableStatList *tables = table_stats_all(db);
     if (!idxs || !tables) {
@@ -89,9 +80,7 @@ static void run_drop_cycle(DB *db, const Config *cfg) {
         if (tables) table_stats_free(tables);
         return;
     }
-
     DropProposalList *props = decision_evaluate_drops(db, cfg, idxs, tables);
-
     int dropped = 0;
     for (int i = 0; i < props->n; i++) {
         DropProposal *p = &props->items[i];
@@ -113,15 +102,11 @@ static void run_drop_cycle(DB *db, const Config *cfg) {
                 dropped++;
         }
     }
-
     drop_proposals_free(props);
     index_stats_free(idxs);
     table_stats_free(tables);
     LOG_I("=== drop-cycle end (dropped=%d) ===", dropped);
 }
-
-/* ---- main loop ---------------------------------------------------------- */
-
 int main(int argc, char **argv) {
     logger_init(LOG_INFO);
     if (argc < 2) {
@@ -137,10 +122,8 @@ int main(int argc, char **argv) {
     }
     LOG_I("starting pg_autoindex (dry_run=%d, create_int=%ds, monitor_int=%ds)",
           cfg->dry_run, cfg->analysis_interval_s, cfg->monitor_interval_s);
-
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
-
     time_t next_create  = 0;
     time_t next_monitor = 0;
 
@@ -152,7 +135,6 @@ int main(int argc, char **argv) {
         if (!hypopg_available(db)) {
             LOG_W("hypopg not installed; create-cycles will be skipped");
         }
-
         if (now >= next_create) {
             run_create_cycle(db, cfg);
             next_create = now + cfg->analysis_interval_s;
@@ -162,15 +144,12 @@ int main(int argc, char **argv) {
             next_monitor = now + cfg->monitor_interval_s;
         }
         db_close(db);
-
-        /* sleep until the nearer of the two next deadlines */
         time_t soonest = next_create < next_monitor ? next_create : next_monitor;
         long delay = soonest - time(NULL);
         if (delay < 1) delay = 1;
-        if (delay > 60) delay = 60;  /* re-check stop flag at least every min */
+        if (delay > 60) delay = 60;  
         for (long s = 0; s < delay && !g_stop; s++) sleep(1);
     }
-
     LOG_I("shutting down");
     config_free(cfg);
     return 0;
